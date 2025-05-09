@@ -41,9 +41,16 @@ USER node
 
 FROM node:20-alpine AS production
 
-COPY --chown=node:node /app/public ./public
-COPY --chown=node:node /app/node_modules ./node_modules
-COPY --chown=node:node /app/.next/ ./next
+WORKDIR /app
+
+COPY --chown=node:node --from=build /app/public ./public
+COPY --chown=node:node --from=build /app/node_modules ./node_modules
+COPY --chown=node:node --from=build /app/.next ./.next
+COPY --chown=node:node --from=build /app/package.json ./package.json
+
+ENV NODE_ENV production
+
+USER node
 
 EXPOSE 3005
 

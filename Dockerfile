@@ -44,7 +44,6 @@ FROM node:20-alpine AS production
 COPY --chown=node:node /app/public ./public
 COPY --chown=node:node /app/node_modules ./node_modules
 COPY --chown=node:node /app/.next/ ./next
-COPY --chown=node:node /app/.env.local ./.env.local
 
 EXPOSE 3005
 

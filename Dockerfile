@@ -1,30 +1,31 @@
-# BUILD FOR LOCAL DEVELOPMENT
-FROM node:20-alpine AS development
+# syntax=docker/dockerfile:1
 
+FROM node:20-alpine AS base
+
+# Install dependencies only when needed
+FROM base AS deps
 WORKDIR /app
 
-COPY --chown=node:node package*.json pnpm-lock.yaml ./
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
 
-RUN yarn global add pnpm && pnpm install --no-frozen-lockfile
+# Copy package files
+COPY package.json pnpm-lock.yaml .npmrc* ./
 
-COPY --chown=node:node . .
+# Install dependencies
+RUN pnpm install --frozen-lockfile || pnpm install --no-frozen-lockfile
 
-USER node
-
-# BUILD FOR PRODUCTION
-
-FROM node:20-alpine AS build
-
+# Rebuild the source code only when needed
+FROM base AS builder
 WORKDIR /app
 
-COPY --chown=node:node package*.json pnpm-lock.yaml ./
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
 
-COPY --chown=node:node --from=development /app/node_modules ./node_modules
+# Next.js collects completely anonymous telemetry data
+ENV NEXT_TELEMETRY_DISABLED 1
 
-COPY --chown=node:node . .
-
-ENV NODE_ENV production
-
+# Build with environment variables from secrets
 RUN --mount=type=secret,id=NEXT_PUBLIC_DEFAULT_PLATFORM \
     --mount=type=secret,id=NEXT_PUBLIC_DEFAULT_SHARD \
     --mount=type=secret,id=NEXT_PUBLIC_SUPABASE_URL \
@@ -33,25 +34,33 @@ RUN --mount=type=secret,id=NEXT_PUBLIC_DEFAULT_PLATFORM \
     export NEXT_PUBLIC_DEFAULT_SHARD=$(cat /run/secrets/NEXT_PUBLIC_DEFAULT_SHARD) && \
     export NEXT_PUBLIC_SUPABASE_URL=$(cat /run/secrets/NEXT_PUBLIC_SUPABASE_URL) && \
     export NEXT_PUBLIC_SUPABASE_ANON_KEY=$(cat /run/secrets/NEXT_PUBLIC_SUPABASE_ANON_KEY) && \
-    yarn global add pnpm && pnpm build && pnpm install --no-frozen-lockfile --prod
+    pnpm build
 
-USER node
-
-# PRODUCTION
-
-FROM node:20-alpine AS production
-
+# Production image, copy all the files and run next
+FROM base AS production
 WORKDIR /app
 
-COPY --chown=node:node --from=build /app/public ./public
-COPY --chown=node:node --from=build /app/node_modules ./node_modules
-COPY --chown=node:node --from=build /app/.next ./.next
-COPY --chown=node:node --from=build /app/package.json ./package.json
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
 
-ENV NODE_ENV production
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
 
-USER node
+COPY --from=builder /app/public ./public
+
+# Set the correct permission for prerender cache
+RUN mkdir .next
+RUN chown nextjs:nodejs .next
+
+# Automatically leverage output traces to reduce image size
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+USER nextjs
 
 EXPOSE 3005
 
-CMD ["node_modules/.bin/next", "start"]
+ENV PORT 3005
+ENV HOSTNAME "0.0.0.0"
+
+CMD ["node", "server.js"]

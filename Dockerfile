@@ -41,10 +41,10 @@ USER node
 
 FROM node:20-alpine AS production
 
-COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-COPY --from=builder /app/.env.local ./.env.local
+COPY --chown=node:node /app/public ./public
+COPY --chown=node:node /app/node_modules ./node_modules
+COPY --chown=node:node /app/.next/ ./next
+COPY --chown=node:node /app/.env.local ./.env.local
 
 EXPOSE 3005
 

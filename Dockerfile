@@ -8,7 +8,7 @@ WORKDIR /app
 # Copy package files
 COPY package.json package-lock.json ./
 
-# Install dependencies including dev dependencies
+# Install all dependencies including dev dependencies
 RUN npm ci
 
 # Build the app
@@ -16,8 +16,6 @@ FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-# Ensure environment variables file exists (will be overwritten by build-args)
-COPY .env.production .env.local
 
 # ARGs for build-time environment variables
 ARG PUBG_OPEN_API_KEY
@@ -43,10 +41,10 @@ ENV PUBG_API_CACHE_DURATION=${PUBG_API_CACHE_DURATION}
 ENV STEAM_OPEN_API_KEY=${STEAM_OPEN_API_KEY}
 ENV SUPABASE_PASSWORD=${SUPABASE_PASSWORD}
 
-# Make sure all dependencies are installed, including development dependencies
-RUN npm install --include=dev
-# Explicitly install autoprefixer which is needed for the build
-RUN npm install autoprefixer postcss tailwindcss
+# Explicitly install autoprefixer and other required packages
+RUN npm install -g npm@latest && \
+    npm install autoprefixer postcss tailwindcss --save-dev
+
 # Build application
 RUN npm run build
 
@@ -85,7 +83,6 @@ RUN addgroup --system --gid 1001 nodejs && \
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-COPY --from=builder /app/.env.local ./.env.local
 
 
 # Set proper permissions

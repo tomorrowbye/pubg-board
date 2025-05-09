@@ -1,4 +1,5 @@
 import { pubgApiService } from '@/lib/api/pubg-api-service';
+import { supabaseService } from '@/lib/supabase/supabase-client';
 import { PlatformShard } from '@/types/pubg-api';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -39,7 +40,19 @@ export async function GET(request: NextRequest) {
 
     console.log(`🔍 搜索玩家: ${playerName}, 平台: ${shard || '默认'}`);
     
-    // 调用 API 服务搜索玩家
+    // 首先从 Supabase 查找玩家数据
+    console.log(`📊 从 Supabase 查找玩家记录: ${playerName}`);
+    const cachedPlayer = await supabaseService.getPlayerByName(playerName, shard || 'steam');
+    
+    // 如果找到缓存数据，直接返回
+    if (cachedPlayer) {
+      console.log(`✅ 找到缓存的玩家数据: ${cachedPlayer.name}, ID: ${cachedPlayer.id}`);
+      const player = cachedPlayer.data;
+      return NextResponse.json({ player, fromCache: true });
+    }
+    
+    // 如果没有缓存数据，调用 API 服务搜索玩家
+    console.log(`🌐 从 PUBG API 获取玩家数据: ${playerName}`);
     const player = await pubgApiService.searchPlayer(playerName, shard);
 
     if (!player) {
@@ -52,8 +65,18 @@ export async function GET(request: NextRequest) {
 
     console.log(`✅ 成功找到玩家: ${player.attributes.name}, ID: ${player.id}`);
     
+    // 存储玩家数据到 Supabase
+    console.log(`💾 保存玩家数据到 Supabase: ${player.attributes.name}`);
+    await supabaseService.savePlayer({
+      id: player.id,
+      name: player.attributes.name,
+      shard: shard || 'steam',
+      data: player,
+      last_sync_at: new Date().toISOString()
+    });
+    
     // 返回玩家信息
-    return NextResponse.json({ player });
+    return NextResponse.json({ player, fromCache: false });
   } catch (error) {
     console.error('❌ Error in players API route:', error);
     return NextResponse.json(

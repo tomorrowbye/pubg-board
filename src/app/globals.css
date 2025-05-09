@@ -2,9 +2,89 @@
 @tailwind components;
 @tailwind utilities;
 
+/* 全局背景 */
+body {
+  background-image: url('/images/orange-texture-bg.jpg');
+  background-size: cover;
+  background-attachment: fixed;
+  background-position: center;
+}
+
+/* 内容区域样式 */
+.container {
+  background-color: rgba(15, 23, 42, 0.9); /* 深色半透明背景 */
+  backdrop-filter: blur(6px);
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* 战绩卡片样式 */
+.match-card {
+  @apply bg-gradient-to-br from-amber-900/90 to-gray-900/95 rounded-lg mb-3 overflow-hidden border border-amber-800/70 shadow-md transition-all backdrop-blur-sm;
+}
+
+.match-card-header {
+  @apply p-4 flex flex-wrap items-center justify-between cursor-pointer hover:bg-orange-900/30 transition-colors;
+}
+
+.match-card-content {
+  @apply border-t border-amber-800/40 p-4 pb-6;
+}
+
+.match-card-team {
+  @apply space-y-3;
+}
+
+.match-card-stats {
+  @apply space-y-2;
+}
+
+/* 统计框样式 */
+.stats-card {
+  @apply bg-gradient-to-br from-orange-900/40 to-gray-900/70 rounded-md p-3 shadow-sm border border-amber-700/40;
+}
+
+.match-card-rank-1 {
+  @apply bg-yellow-500 text-white;
+}
+
+.match-card-rank-top5 {
+  @apply bg-green-500 text-white;
+}
+
+.match-card-rank-top10 {
+  @apply bg-blue-500 text-white;
+}
+
+.match-card-rank-other {
+  @apply bg-blue-700 text-white;
+}
+
+/* 战斗数据图标颜色 */
+.icon-kills {
+  @apply text-red-400;
+}
+
+.icon-damage {
+  @apply text-amber-400;
+}
+
+.icon-survival {
+  @apply text-blue-400;
+}
+
+.icon-team {
+  @apply text-indigo-400;
+}
+
+/* 战绩时间格式化 */
+.survival-time {
+  @apply font-mono;
+}
+
 @layer base {
   :root {
-    --foreground-rgb: 0, 0, 0;
+    --foreground-rgb: 255, 255, 255;
     --background-start-rgb: 214, 219, 220;
     --background-end-rgb: 255, 255, 255;
     
@@ -74,11 +154,11 @@ body {
 @layer base {
   /* 确保所有文本元素都有足够的对比度 */
   h1, h2, h3, h4, h5, h6 {
-    @apply text-gray-900 dark:text-gray-100;
+    @apply text-gray-900 dark:text-white;
   }
   
   p, span, div, li, a {
-    @apply text-gray-800 dark:text-gray-200;
+    @apply text-gray-800 dark:text-gray-100;
   }
   
   /* 链接样式 */
@@ -87,9 +167,9 @@ body {
   }
   
   /* 确保标签文本可见 */
-  label {
-    @apply text-gray-700 dark:text-gray-300 font-medium;
-  }
+    label {
+      @apply text-gray-700 dark:text-gray-100 font-medium;
+    }
 }
 
 @layer utilities {
@@ -158,11 +238,11 @@ body {
   }
   
   th {
-    @apply text-gray-700 dark:text-gray-300 font-semibold px-4 py-2;
+    @apply text-gray-700 dark:text-white font-semibold px-4 py-2;
   }
   
   td {
-    @apply border-t border-gray-200 dark:border-gray-700 px-4 py-2 text-gray-900 dark:text-gray-100;
+    @apply border-t border-gray-200 dark:border-gray-700 px-4 py-2 text-gray-900 dark:text-white;
   }
   
   /* 提示和通知 */

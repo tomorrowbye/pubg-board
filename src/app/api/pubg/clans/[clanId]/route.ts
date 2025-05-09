@@ -66,7 +66,7 @@ export async function GET(
     }
     
     // 处理成员信息
-    const memberIds = clan.data.relationships?.members?.data.map(member => member.id) || [];
+    const memberIds = clan.members?.map(member => member.id) || [];
     console.log(`📊 战队成员数量: ${memberIds.length}`);
     
     // 获取成员详细信息

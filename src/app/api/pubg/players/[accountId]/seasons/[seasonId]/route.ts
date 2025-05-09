@@ -1,4 +1,5 @@
 import { pubgApiService } from '@/lib/api/pubg-api-service';
+import { supabaseService } from '@/lib/supabase/supabase-client';
 import { PlatformShard } from '@/types/pubg-api';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -70,6 +71,27 @@ export async function GET(
       }
       
       console.log(`✅ 获取到当前赛季: ${currentSeason.id}`);
+      
+      // 从 Supabase 查找缓存的赛季数据
+      console.log(`📊 从 Supabase 查找缓存的赛季数据: 玩家=${accountId}, 赛季=${currentSeason.id}`);
+      const cachedStats = await supabaseService.getPlayerSeasonStats(
+        accountId, 
+        currentSeason.id, 
+        shard || 'steam'
+      );
+      
+      // 如果找到缓存数据，直接返回
+      if (cachedStats) {
+        console.log(`✅ 找到缓存的赛季数据`);
+        return NextResponse.json({ 
+          seasonStats: cachedStats.data,
+          seasonInfo: currentSeason,
+          fromCache: true
+        });
+      }
+      
+      // 如果没有缓存数据，调用 API 获取
+      console.log(`🌐 从 PUBG API 获取当前赛季数据: ${currentSeason.id}`);
       const seasonStats = await pubgApiService.getPlayerSeasonStats(accountId, currentSeason.id, shard);
       
       if (!seasonStats) {
@@ -80,15 +102,46 @@ export async function GET(
         );
       }
       
+      // 保存数据到 Supabase
+      console.log(`💾 保存赛季数据到 Supabase: 玩家=${accountId}, 赛季=${currentSeason.id}`);
+      await supabaseService.savePlayerSeasonStats({
+        player_id: accountId,
+        season_id: currentSeason.id,
+        shard: shard || 'steam',
+        data: seasonStats,
+        last_sync_at: new Date().toISOString()
+      });
+      
       console.log(`✅ 成功获取玩家 ${accountId} 的当前赛季数据`);
       return NextResponse.json({ 
         seasonStats,
-        seasonInfo: currentSeason
+        seasonInfo: currentSeason,
+        fromCache: false
       });
     } 
     
     // 正常处理指定的赛季ID
     console.log(`🔍 获取指定赛季 ${seasonId} 的数据, 玩家ID: ${accountId}`);
+    
+    // 从 Supabase 查找缓存的赛季数据
+    console.log(`📊 从 Supabase 查找缓存的赛季数据: 玩家=${accountId}, 赛季=${seasonId}`);
+    const cachedStats = await supabaseService.getPlayerSeasonStats(
+      accountId, 
+      seasonId, 
+      shard || 'steam'
+    );
+    
+    // 如果找到缓存数据，直接返回
+    if (cachedStats) {
+      console.log(`✅ 找到缓存的赛季数据`);
+      return NextResponse.json({ 
+        seasonStats: cachedStats.data,
+        fromCache: true 
+      });
+    }
+    
+    // 如果没有缓存数据，调用 API 获取
+    console.log(`🌐 从 PUBG API 获取赛季数据: ${seasonId}`);
     const seasonStats = await pubgApiService.getPlayerSeasonStats(accountId, seasonId, shard);
     
     if (!seasonStats) {
@@ -99,8 +152,18 @@ export async function GET(
       );
     }
     
+    // 保存数据到 Supabase
+    console.log(`💾 保存赛季数据到 Supabase: 玩家=${accountId}, 赛季=${seasonId}`);
+    await supabaseService.savePlayerSeasonStats({
+      player_id: accountId,
+      season_id: seasonId,
+      shard: shard || 'steam',
+      data: seasonStats,
+      last_sync_at: new Date().toISOString()
+    });
+    
     console.log(`✅ 成功获取玩家 ${accountId} 在赛季 ${seasonId} 的数据`);
-    return NextResponse.json({ seasonStats });
+    return NextResponse.json({ seasonStats, fromCache: false });
   } catch (error) {
     console.error('❌ Error in player season stats API route:', error);
     return NextResponse.json(

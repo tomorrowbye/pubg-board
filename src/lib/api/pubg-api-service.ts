@@ -491,14 +491,20 @@ export const pubgApiService = {
    * @returns 公会信息
    */
   async getClan(
-    clanId: string,
+    playerId: string,
     shard?: PlatformShard
   ): Promise<Clan | null> {
     try {
-      const client = createApiClient(shard);
-      return await client.getClan(clanId);
+      console.log(`🔍 尝试获取玩家 ${playerId} 战队信息, 平台: ${shard || '默认'}`);
+      
+      // PUBG API 目前不直接提供获取战队的端点
+      // 根据官方文档，无法直接获取玩家战队信息
+      // 如果要获取战队信息，将需要额外的服务或API
+      
+      console.log(`ℹ️ PUBG API 不支持获取战队信息`);
+      return null;
     } catch (error) {
-      console.error('Error getting clan information:', error);
+      console.error('❌ Error getting clan information:', error);
       return null;
     }
   },

@@ -389,6 +389,22 @@ export interface SurvivalMastery {
 
 // 公会相关类型
 export interface Clan {
+  id?: string;
+  type?: string;
+  name?: string;
+  tag?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  members?: Array<{
+    id: string;
+    type?: string;
+    role?: string;
+  }>;
+  found?: boolean;
+}
+
+// 公会响应类型
+export interface ClanResponse {
   data: {
     type: string;
     id: string;

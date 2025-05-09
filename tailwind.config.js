@@ -15,6 +15,10 @@ module.exports = {
         "2xl": "1400px",
       },
     },
+    fontFamily: {
+      sans: ['var(--font-nunito)', 'sans-serif'],
+      mono: ['var(--font-roboto-mono)', 'monospace'],
+    },
     extend: {
       colors: {
         primary: {

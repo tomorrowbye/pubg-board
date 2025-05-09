@@ -5,7 +5,7 @@ WORKDIR /app
 
 COPY --chown=node:node package*.json pnpm-lock.yaml ./
 
-RUN yarn global add pnpm && pnpm install --frozen-lockfile
+RUN yarn global add pnpm && pnpm install --no-frozen-lockfile
 
 COPY --chown=node:node . .
 
@@ -33,7 +33,7 @@ RUN --mount=type=secret,id=NEXT_PUBLIC_DEFAULT_PLATFORM \
     export NEXT_PUBLIC_DEFAULT_SHARD=$(cat /run/secrets/NEXT_PUBLIC_DEFAULT_SHARD) && \
     export NEXT_PUBLIC_SUPABASE_URL=$(cat /run/secrets/NEXT_PUBLIC_SUPABASE_URL) && \
     export NEXT_PUBLIC_SUPABASE_ANON_KEY=$(cat /run/secrets/NEXT_PUBLIC_SUPABASE_ANON_KEY) && \
-    yarn global add pnpm && pnpm build && pnpm install --frozen-lockfile --prod
+    yarn global add pnpm && pnpm build && pnpm install --no-frozen-lockfile --prod
 
 USER node
 

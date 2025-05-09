@@ -1,0 +1,63 @@
+name: Build & Deploy PUBG Board
+
+on:
+  push:
+    tags:
+      - "release-v*"
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Login to Ali Docker Hub
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ secrets.DOCKER_ALI_REGISTRY }}
+          username: ${{ secrets.DOCKER_ALI_USERNAME }}
+          password: ${{ secrets.DOCKER_ALI_PASSWORD }}
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ secrets.DOCKER_ALI_REGISTRY }}/tomorrowbye/pubg-board
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v3
+        with:
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          context: ./
+          labels: ${{ steps.meta.outputs.labels }}
+          file: ./Dockerfile
+          build-args: |
+            PUBG_OPEN_API_KEY=${{ secrets.PUBG_OPEN_API_KEY }}
+            PUBG_API_BASE_URL=${{ secrets.PUBG_API_BASE_URL }}
+            NEXT_PUBLIC_DEFAULT_PLATFORM=${{ secrets.NEXT_PUBLIC_DEFAULT_PLATFORM }}
+            NEXT_PUBLIC_DEFAULT_SHARD=${{ secrets.NEXT_PUBLIC_DEFAULT_SHARD }}
+            NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+            NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+            PUBG_API_CACHE_DURATION=${{ secrets.PUBG_API_CACHE_DURATION }}
+            STEAM_OPEN_API_KEY=${{ secrets.STEAM_OPEN_API_KEY }}
+            SUPABASE_PASSWORD=${{ secrets.SUPABASE_PASSWORD }}
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to Server
+        uses: appleboy/ssh-action@v0.1.6
+        with:
+          host: ${{ secrets.DEPLOY_SSH_HOST }}
+          port: ${{ secrets.DEPLOY_SSH_PORT }}
+          username: ${{ secrets.DEPLOY_SSH_USERNAME }}
+          password: ${{ secrets.DEPLOY_SSH_PASSWORD }}
+          script: |
+            cd /home/titan/titan-devops
+            docker-compose -f ./docker-compose.yml pull pubg-board
+            docker-compose -f ./docker-compose.yml stop pubg-board
+            docker-compose -f ./docker-compose.yml rm pubg-board -f
+            docker-compose -f ./docker-compose.yml up pubg-board -d
+            docker image prune -f

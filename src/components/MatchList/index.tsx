@@ -11,45 +11,52 @@ interface MatchListProps {
 // 比赛数据格式化函数
 const formatMatchData = (matchData: any) => {
   if (!matchData) return null;
-  
+
   try {
     // 获取基本信息
     const matchInfo = matchData.data?.attributes || {};
-    
+
     // 查找玩家相关的参与者
-    const participant = matchData.included?.find((item: any) => 
-      item.type === 'participant' && 
-      item.attributes?.stats?.playerId === matchData.playerAccountId
+    const participant = matchData.included?.find(
+      (item: any) =>
+        item.type === "participant" &&
+        item.attributes?.stats?.playerId === matchData.playerAccountId,
     );
-    
+
     if (!participant) return null;
-    
+
     // 获取队友信息 (所有同一个roster的玩家)
-    const roster = matchData.included?.find((item: any) => 
-      item.type === 'roster' && 
-      item.relationships?.participants?.data?.some((p: any) => p.id === participant.id)
+    const roster = matchData.included?.find(
+      (item: any) =>
+        item.type === "roster" &&
+        item.relationships?.participants?.data?.some(
+          (p: any) => p.id === participant.id,
+        ),
     );
-    
-    const teammates = roster?.relationships?.participants?.data
-      .filter((p: any) => p.id !== participant.id)
-      .map((p: any) => {
-        const teammateData = matchData.included?.find((item: any) => 
-          item.type === 'participant' && item.id === p.id
-        );
-        return teammateData ? {
-          name: teammateData.attributes?.stats?.name || 'Unknown',
-          kills: teammateData.attributes?.stats?.kills || 0
-        } : null;
-      })
-      .filter(Boolean) || [];
-    
+
+    const teammates =
+      roster?.relationships?.participants?.data
+        .filter((p: any) => p.id !== participant.id)
+        .map((p: any) => {
+          const teammateData = matchData.included?.find(
+            (item: any) => item.type === "participant" && item.id === p.id,
+          );
+          return teammateData
+            ? {
+                name: teammateData.attributes?.stats?.name || "Unknown",
+                kills: teammateData.attributes?.stats?.kills || 0,
+              }
+            : null;
+        })
+        .filter(Boolean) || [];
+
     // 获取玩家统计数据
     const stats = participant.attributes?.stats || {};
-    
+
     return {
-      id: matchData.data?.id || '',
-      gameMode: matchInfo.gameMode || '',
-      mapName: matchInfo.mapName || '',
+      id: matchData.data?.id || "",
+      gameMode: matchInfo.gameMode || "",
+      mapName: matchInfo.mapName || "",
       createdAt: matchInfo.createdAt || new Date().toISOString(),
       stats: {
         rank: roster?.attributes?.stats?.rank || 0,
@@ -60,8 +67,8 @@ const formatMatchData = (matchData: any) => {
         boostItems: stats.boosts || 0,
         revives: stats.revives || 0,
         longestKill: Math.round(stats.longestKill || 0),
-        teammates: teammates
-      }
+        teammates: teammates,
+      },
     };
   } catch (err) {
     console.error("Error formatting match data:", err);
@@ -125,7 +132,9 @@ export default function MatchList({
   if (loading) {
     return (
       <div>
-        <h2 className="text-2xl font-bold text-amber-100 mb-4">Recent Matches</h2>
+        <h2 className="text-2xl font-bold text-amber-100 mb-4">
+          Recent Matches
+        </h2>
         <div className="space-y-4">
           {Array(3)
             .fill(0)
@@ -159,7 +168,9 @@ export default function MatchList({
   if (error) {
     return (
       <div>
-        <h2 className="text-2xl font-bold text-amber-100 mb-4">Recent Matches</h2>
+        <h2 className="text-2xl font-bold text-amber-100 mb-4">
+          Recent Matches
+        </h2>
         <div className="bg-red-900/40 border border-red-700 rounded-lg p-4 text-red-200">
           <p>Error loading match history: {error}</p>
           <p className="mt-2 text-sm">
@@ -173,7 +184,9 @@ export default function MatchList({
   if (matches.length === 0) {
     return (
       <div>
-        <h2 className="text-2xl font-bold text-amber-100 mb-4">Recent Matches</h2>
+        <h2 className="text-2xl font-bold text-amber-100 mb-4">
+          Recent Matches
+        </h2>
         <div className="bg-gradient-to-br from-amber-900/60 to-gray-900/80 rounded-lg p-6 border border-amber-800/50 text-center">
           <p className="text-amber-200/90">No recent matches found.</p>
           <p className="mt-2 text-sm text-amber-200/70">
@@ -190,11 +203,7 @@ export default function MatchList({
       <h2 className="text-2xl font-bold text-amber-100 mb-4">Recent Matches</h2>
       <div className="space-y-4">
         {matches.map((match, index) => (
-          <MatchCard 
-            key={`${match.id || index}`} 
-            match={match} 
-            shard={shard} 
-          />
+          <MatchCard key={`${match.id || index}`} match={match} shard={shard} />
         ))}
       </div>
     </div>

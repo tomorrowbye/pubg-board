@@ -1,5 +1,5 @@
-import { createClient } from '@supabase/supabase-js';
-import { Database } from './supabase-types';
+import { createClient } from "@supabase/supabase-js";
+import { Database } from "./supabase-types";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -29,8 +29,8 @@ export type PlayerSeasonStatsRecord = {
 export type SyncHistoryRecord = {
   id?: number;
   player_id: string;
-  sync_type: 'player' | 'season_stats' | 'lifetime_stats';
-  status: 'success' | 'failed';
+  sync_type: "player" | "season_stats" | "lifetime_stats";
+  status: "success" | "failed";
   details?: string;
   created_at?: string;
 };
@@ -39,8 +39,8 @@ export type SyncHistoryRecord = {
 // @ts-ignore - Ignore type errors in Supabase client
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
-    persistSession: false
-  }
+    persistSession: false,
+  },
 });
 
 // Supabase data service
@@ -51,23 +51,26 @@ export const supabaseService = {
    * @param shard Platform shard
    * @returns Player record or null
    */
-  async getPlayerByName(name: string, shard: string): Promise<PlayerRecord | null> {
+  async getPlayerByName(
+    name: string,
+    shard: string,
+  ): Promise<PlayerRecord | null> {
     try {
       const { data, error } = await supabase
-        .from('players')
-        .select('*')
-        .eq('name', name)
-        .eq('shard', shard)
+        .from("players")
+        .select("*")
+        .eq("name", name)
+        .eq("shard", shard)
         .single();
 
       if (error) {
-        console.log('❌ Error fetching player from Supabase:', error.message);
+        console.log("❌ Error fetching player from Supabase:", error.message);
         return null;
       }
 
       return data as unknown as PlayerRecord;
     } catch (err) {
-      console.log('❌ Exception in getPlayerByName:', err);
+      console.log("❌ Exception in getPlayerByName:", err);
       return null;
     }
   },
@@ -80,13 +83,13 @@ export const supabaseService = {
   async getPlayerById(id: string): Promise<PlayerRecord | null> {
     try {
       const { data, error } = await supabase
-        .from('players')
-        .select('*')
-        .eq('id', id)
+        .from("players")
+        .select("*")
+        .eq("id", id)
         .single();
 
       if (error) {
-        console.log('❌ Error fetching player from Supabase:', error.message);
+        console.log("❌ Error fetching player from Supabase:", error.message);
         return null;
       }
 
@@ -96,17 +99,17 @@ export const supabaseService = {
       }
 
       // 确保数据结构完整
-      if (!data.data) {
-        data.data = {};
+      if (!(data as any).data) {
+        (data as any).data = {};
       }
-      
-      if (!data.data.relationships) {
-        data.data.relationships = {};
+
+      if (!(data as any).data.relationships) {
+        (data as any).data.relationships = {};
       }
 
       return data as unknown as PlayerRecord;
     } catch (err) {
-      console.log('❌ Exception in getPlayerById:', err);
+      console.log("❌ Exception in getPlayerById:", err);
       return null;
     }
   },
@@ -122,7 +125,7 @@ export const supabaseService = {
       if (!player.data) {
         player.data = {};
       }
-      
+
       if (!player.data.relationships) {
         player.data.relationships = {};
       }
@@ -136,43 +139,43 @@ export const supabaseService = {
         if (existingPlayer.data && existingPlayer.data.relationships) {
           player.data.relationships = {
             ...existingPlayer.data.relationships,
-            ...player.data.relationships
+            ...player.data.relationships,
           };
         }
 
         // Update existing player
         const { data, error } = await supabase
-          .from('players')
+          .from("players")
           .update({
             name: player.name,
             shard: player.shard,
             data: player.data,
             last_sync_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
           })
-          .eq('id', player.id)
+          .eq("id", player.id)
           .select();
 
         if (error) {
-          console.log('❌ Error updating player in Supabase:', error.message);
+          console.log("❌ Error updating player in Supabase:", error.message);
           return null;
         }
         result = data?.[0];
       } else {
         // Insert new player
         const { data, error } = await supabase
-          .from('players')
+          .from("players")
           .insert({
             id: player.id,
             name: player.name,
             shard: player.shard,
             data: player.data,
-            last_sync_at: new Date().toISOString()
+            last_sync_at: new Date().toISOString(),
           })
           .select();
 
         if (error) {
-          console.log('❌ Error inserting player in Supabase:', error.message);
+          console.log("❌ Error inserting player in Supabase:", error.message);
           return null;
         }
         result = data?.[0];
@@ -181,13 +184,13 @@ export const supabaseService = {
       // Add sync history entry
       await this.addSyncHistory({
         player_id: player.id,
-        sync_type: 'player',
-        status: 'success'
+        sync_type: "player",
+        status: "success",
       });
 
       return result as unknown as PlayerRecord;
     } catch (err) {
-      console.log('❌ Exception in savePlayer:', err);
+      console.log("❌ Exception in savePlayer:", err);
       return null;
     }
   },
@@ -202,25 +205,28 @@ export const supabaseService = {
   async getPlayerSeasonStats(
     playerId: string,
     seasonId: string,
-    shard: string
+    shard: string,
   ): Promise<PlayerSeasonStatsRecord | null> {
     try {
       const { data, error } = await supabase
-        .from('player_season_stats')
-        .select('*')
-        .eq('player_id', playerId)
-        .eq('season_id', seasonId)
-        .eq('shard', shard)
+        .from("player_season_stats")
+        .select("*")
+        .eq("player_id", playerId)
+        .eq("season_id", seasonId)
+        .eq("shard", shard)
         .single();
 
       if (error) {
-        console.log('❌ Error fetching season stats from Supabase:', error.message);
+        console.log(
+          "❌ Error fetching season stats from Supabase:",
+          error.message,
+        );
         return null;
       }
 
       return data as unknown as PlayerSeasonStatsRecord;
     } catch (err) {
-      console.log('❌ Exception in getPlayerSeasonStats:', err);
+      console.log("❌ Exception in getPlayerSeasonStats:", err);
       return null;
     }
   },
@@ -231,51 +237,57 @@ export const supabaseService = {
    * @returns Saved season stats record or null
    */
   async savePlayerSeasonStats(
-    stats: PlayerSeasonStatsRecord
+    stats: PlayerSeasonStatsRecord,
   ): Promise<PlayerSeasonStatsRecord | null> {
     try {
       // Check if stats exists
       const existingStats = await this.getPlayerSeasonStats(
         stats.player_id,
         stats.season_id,
-        stats.shard
+        stats.shard,
       );
 
       let result;
       if (existingStats) {
         // Update existing stats
         const { data, error } = await supabase
-          .from('player_season_stats')
+          .from("player_season_stats")
           .update({
             data: stats.data,
             last_sync_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
           })
-          .eq('player_id', stats.player_id)
-          .eq('season_id', stats.season_id)
-          .eq('shard', stats.shard)
+          .eq("player_id", stats.player_id)
+          .eq("season_id", stats.season_id)
+          .eq("shard", stats.shard)
           .select();
 
         if (error) {
-          console.log('❌ Error updating season stats in Supabase:', error.message);
+          console.log(
+            "❌ Error updating season stats in Supabase:",
+            error.message,
+          );
           return null;
         }
         result = data?.[0];
       } else {
         // Insert new stats
         const { data, error } = await supabase
-          .from('player_season_stats')
+          .from("player_season_stats")
           .insert({
             player_id: stats.player_id,
             season_id: stats.season_id,
             shard: stats.shard,
             data: stats.data,
-            last_sync_at: new Date().toISOString()
+            last_sync_at: new Date().toISOString(),
           })
           .select();
 
         if (error) {
-          console.log('❌ Error inserting season stats in Supabase:', error.message);
+          console.log(
+            "❌ Error inserting season stats in Supabase:",
+            error.message,
+          );
           return null;
         }
         result = data?.[0];
@@ -284,13 +296,13 @@ export const supabaseService = {
       // Add sync history entry
       await this.addSyncHistory({
         player_id: stats.player_id,
-        sync_type: 'season_stats',
-        status: 'success'
+        sync_type: "season_stats",
+        status: "success",
       });
 
       return result as unknown as PlayerSeasonStatsRecord;
     } catch (err) {
-      console.log('❌ Exception in savePlayerSeasonStats:', err);
+      console.log("❌ Exception in savePlayerSeasonStats:", err);
       return null;
     }
   },
@@ -300,26 +312,28 @@ export const supabaseService = {
    * @param history Sync history data
    * @returns Saved history record or null
    */
-  async addSyncHistory(history: SyncHistoryRecord): Promise<SyncHistoryRecord | null> {
+  async addSyncHistory(
+    history: SyncHistoryRecord,
+  ): Promise<SyncHistoryRecord | null> {
     try {
       const { data, error } = await supabase
-        .from('sync_history')
+        .from("sync_history")
         .insert({
           player_id: history.player_id,
           sync_type: history.sync_type,
           status: history.status,
-          details: history.details
+          details: history.details,
         })
         .select();
 
       if (error) {
-        console.log('❌ Error adding sync history in Supabase:', error.message);
+        console.log("❌ Error adding sync history in Supabase:", error.message);
         return null;
       }
 
       return data?.[0] as unknown as SyncHistoryRecord;
     } catch (err) {
-      console.log('❌ Exception in addSyncHistory:', err);
+      console.log("❌ Exception in addSyncHistory:", err);
       return null;
     }
   },
@@ -332,11 +346,11 @@ export const supabaseService = {
   async getLastPlayerSyncTime(playerId: string): Promise<Date | null> {
     try {
       const { data, error } = await supabase
-        .from('sync_history')
-        .select('created_at')
-        .eq('player_id', playerId)
-        .eq('status', 'success')
-        .order('created_at', { ascending: false })
+        .from("sync_history")
+        .select("created_at")
+        .eq("player_id", playerId)
+        .eq("status", "success")
+        .order("created_at", { ascending: false })
         .limit(1);
 
       if (error || !data || data.length === 0) {
@@ -345,7 +359,7 @@ export const supabaseService = {
 
       return new Date((data[0] as any).created_at);
     } catch (err) {
-      console.log('❌ Exception in getLastPlayerSyncTime:', err);
+      console.log("❌ Exception in getLastPlayerSyncTime:", err);
       return null;
     }
   },
@@ -357,14 +371,14 @@ export const supabaseService = {
    */
   async canSyncPlayer(playerId: string): Promise<boolean> {
     const lastSync = await this.getLastPlayerSyncTime(playerId);
-    
+
     if (!lastSync) {
       return true; // No sync history, can sync
     }
 
     const now = new Date();
     const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
-    
+
     return lastSync < fiveMinutesAgo;
-  }
+  },
 };

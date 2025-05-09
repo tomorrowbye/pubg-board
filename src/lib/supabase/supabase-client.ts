@@ -100,11 +100,11 @@ export const supabaseService = {
 
       // 确保数据结构完整
       if (!(data as any).data) {
-        (data as any).data = {};
+        data.data = {};
       }
 
-      if (!(data as any).data.relationships) {
-        (data as any).data.relationships = {};
+      if (!data.data.relationships) {
+        data.data.relationships = {};
       }
 
       return data as unknown as PlayerRecord;

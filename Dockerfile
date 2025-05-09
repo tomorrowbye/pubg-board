@@ -1,110 +1,51 @@
-# Base image
-FROM node:20-alpine AS base
+# BUILD FOR LOCAL DEVELOPMENT
+FROM node:20-alpine AS development
 
-# Install dependencies
-FROM base AS deps
 WORKDIR /app
 
-# Install build dependencies
-RUN apk add --no-cache libc6-compat python3 make g++
+COPY --chown=node:node package*.json pnpm-lock.yaml ./
 
-# Copy package files
-COPY package.json package-lock.json ./
+RUN yarn global add pnpm && pnpm install --frozen-lockfile
 
-# Install ALL dependencies (including dev dependencies)
-RUN npm install --omit=optional
+COPY --chown=node:node . .
 
-# Build the app
-FROM base AS builder
+USER node
+
+# BUILD FOR PRODUCTION
+
+FROM node:20-alpine AS build
+
 WORKDIR /app
 
-# Copy node modules and package files
-COPY --from=deps /app/node_modules ./node_modules
-COPY package.json package-lock.json ./
+COPY --chown=node:node package*.json pnpm-lock.yaml ./
 
-# Copy the rest of the application
-COPY . .
+COPY --chown=node:node --from=development /app/node_modules ./node_modules
 
-# ARGs for build-time environment variables
-ARG PUBG_OPEN_API_KEY
-ARG PUBG_API_BASE_URL
-ARG NEXT_PUBLIC_DEFAULT_PLATFORM
-ARG NEXT_PUBLIC_DEFAULT_SHARD
-ARG NEXT_PUBLIC_SUPABASE_URL
-ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
-ARG PUBG_API_CACHE_DURATION
-ARG STEAM_OPEN_API_KEY
-ARG SUPABASE_PASSWORD
-
-# Set environment variables to use in build
-ENV NEXT_TELEMETRY_DISABLED 1
-ENV NODE_ENV production
-ENV PUBG_OPEN_API_KEY=${PUBG_OPEN_API_KEY}
-ENV PUBG_API_BASE_URL=${PUBG_API_BASE_URL}
-ENV NEXT_PUBLIC_DEFAULT_PLATFORM=${NEXT_PUBLIC_DEFAULT_PLATFORM}
-ENV NEXT_PUBLIC_DEFAULT_SHARD=${NEXT_PUBLIC_DEFAULT_SHARD}
-ENV NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
-ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
-ENV PUBG_API_CACHE_DURATION=${PUBG_API_CACHE_DURATION}
-ENV STEAM_OPEN_API_KEY=${STEAM_OPEN_API_KEY}
-ENV SUPABASE_PASSWORD=${SUPABASE_PASSWORD}
-
-# Create .env.local file with the environment variables
-RUN printenv > .env.local
-
-# Install required packages for the build and runtime
-RUN npm install -g npm@latest && \
-    npm install -D autoprefixer postcss tailwindcss
-
-# Build application
-RUN npm run build
-
-# Production image
-FROM base AS runner
-WORKDIR /app
-
-# ARGs for runtime environment variables
-ARG PUBG_OPEN_API_KEY
-ARG PUBG_API_BASE_URL
-ARG NEXT_PUBLIC_DEFAULT_PLATFORM
-ARG NEXT_PUBLIC_DEFAULT_SHARD
-ARG NEXT_PUBLIC_SUPABASE_URL
-ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
-ARG PUBG_API_CACHE_DURATION
-ARG STEAM_OPEN_API_KEY
-ARG SUPABASE_PASSWORD
+COPY --chown=node:node . .
 
 ENV NODE_ENV production
-ENV NEXT_TELEMETRY_DISABLED 1
-ENV PUBG_OPEN_API_KEY=${PUBG_OPEN_API_KEY}
-ENV PUBG_API_BASE_URL=${PUBG_API_BASE_URL}
-ENV NEXT_PUBLIC_DEFAULT_PLATFORM=${NEXT_PUBLIC_DEFAULT_PLATFORM}
-ENV NEXT_PUBLIC_DEFAULT_SHARD=${NEXT_PUBLIC_DEFAULT_SHARD}
-ENV NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
-ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
-ENV PUBG_API_CACHE_DURATION=${PUBG_API_CACHE_DURATION}
-ENV STEAM_OPEN_API_KEY=${STEAM_OPEN_API_KEY}
-ENV SUPABASE_PASSWORD=${SUPABASE_PASSWORD}
 
-# Create a non-root user
-RUN addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 nextjs
+RUN --mount=type=secret,id=NEXT_PUBLIC_DEFAULT_PLATFORM \
+    --mount=type=secret,id=NEXT_PUBLIC_DEFAULT_SHARD \
+    --mount=type=secret,id=NEXT_PUBLIC_SUPABASE_URL \
+    --mount=type=secret,id=NEXT_PUBLIC_SUPABASE_ANON_KEY \
+    export NEXT_PUBLIC_DEFAULT_PLATFORM=$(cat /run/secrets/NEXT_PUBLIC_DEFAULT_PLATFORM) && \
+    export NEXT_PUBLIC_DEFAULT_SHARD=$(cat /run/secrets/NEXT_PUBLIC_DEFAULT_SHARD) && \
+    export NEXT_PUBLIC_SUPABASE_URL=$(cat /run/secrets/NEXT_PUBLIC_SUPABASE_URL) && \
+    export NEXT_PUBLIC_SUPABASE_ANON_KEY=$(cat /run/secrets/NEXT_PUBLIC_SUPABASE_ANON_KEY) && \
+    yarn global add pnpm && pnpm build && pnpm install --frozen-lockfile --prod
 
-# Copy built app
+USER node
+
+# PRODUCTION
+
+FROM node:20-alpine AS production
+
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder /app/.env.local ./.env.local
 
-# Set proper permissions
-USER nextjs
+EXPOSE 3005
 
-# Expose port
-EXPOSE 3000
-
-# Set environment variables
-ENV PORT 3000
-ENV HOSTNAME "0.0.0.0"
-
-# Start the app
-CMD ["node", "server.js"]
+CMD ["node_modules/.bin/next", "start"]

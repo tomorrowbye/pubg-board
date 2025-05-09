@@ -6,14 +6,11 @@ FROM node:20-alpine AS base
 FROM base AS deps
 WORKDIR /app
 
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@^9.0.0 --activate
-
 # Copy package files
-COPY package.json pnpm-lock.yaml .npmrc* ./
+COPY package.json package-lock.json* ./
 
-# Install dependencies
-RUN pnpm install --frozen-lockfile || pnpm install --no-frozen-lockfile
+# Install dependencies using npm
+RUN npm ci --omit=dev || npm install --omit=dev
 
 # Rebuild the source code only when needed
 FROM base AS builder
@@ -34,7 +31,7 @@ RUN --mount=type=secret,id=NEXT_PUBLIC_DEFAULT_PLATFORM \
     export NEXT_PUBLIC_DEFAULT_SHARD=$(cat /run/secrets/NEXT_PUBLIC_DEFAULT_SHARD) && \
     export NEXT_PUBLIC_SUPABASE_URL=$(cat /run/secrets/NEXT_PUBLIC_SUPABASE_URL) && \
     export NEXT_PUBLIC_SUPABASE_ANON_KEY=$(cat /run/secrets/NEXT_PUBLIC_SUPABASE_ANON_KEY) && \
-    pnpm build
+    npm run build
 
 # Production image, copy all the files and run next
 FROM base AS production
